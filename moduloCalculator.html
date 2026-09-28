@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modular Exponentiation Solver</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Fonts: Inter & JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <!-- KaTeX Engine -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['"JetBrains Mono"', 'monospace'],
+                    },
+                    colors: {
+                        app: {
+                            bg: '#0f1117',
+                            surface: '#161922',
+                            inset: '#0b0d12',
+                            border: '#232736',
+                            text: '#e2e8f0',
+                            muted: '#64748b',
+                            accent: '#6366f1',
+                            accentHover: '#4f46e5',
+                            emerald: '#10b981',
+                            amber: '#f59e0b'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        :root {
+            color-scheme: dark;
+        }
+
+        body {
+            background-color: #0f1117;
+            color: #e2e8f0;
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Neumorphic Flat / Raised Surface */
+        .neu-raised {
+            background: #161922;
+            box-shadow: 6px 6px 16px #090a0e, -6px -6px 16px #232836;
+            border: 1px solid rgba(255, 255, 255, 0.03);
+        }
+
+        /* Soft Surface for Subtle Cards */
+        .neu-surface-subtle {
+            background: #12141c;
+            border: 1px solid #1f2330;
+        }
+
+        /* Neumorphic Inset / Recessed Input Surface */
+        .neu-inset {
+            background: #0b0d12;
+            box-shadow: inset 3px 3px 6px #050608, inset -3px -3px 6px #151822;
+            border: 1px solid rgba(255, 255, 255, 0.02);
+        }
+
+        /* Neumorphic Buttons */
+        .neu-button-sec {
+            background: #161922;
+            box-shadow: 4px 4px 10px #08090d, -4px -4px 10px #242937;
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            transition: all 0.15s ease;
+        }
+        .neu-button-sec:hover {
+            background: #1c202c;
+            transform: translateY(-1px);
+        }
+        .neu-button-sec:active {
+            box-shadow: inset 2px 2px 5px #08090d, inset -2px -2px 5px #242937;
+            transform: translateY(1px);
+        }
+
+        .neu-button-primary {
+            background: linear-gradient(135deg, #6366f1, #4f46e5);
+            box-shadow: 4px 4px 12px #07080c, -4px -4px 12px #202432, 0 0 16px rgba(99, 102, 241, 0.25);
+            transition: all 0.15s ease;
+        }
+        .neu-button-primary:hover {
+            box-shadow: 2px 2px 8px #07080c, -2px -2px 8px #202432, 0 0 20px rgba(99, 102, 241, 0.4);
+            transform: translateY(-1px);
+        }
+        .neu-button-primary:active {
+            box-shadow: inset 2px 2px 5px rgba(0, 0, 0, 0.6);
+            transform: translateY(1px);
+        }
+
+        /* KaTeX Overflow & Utility Tuning */
+        .katex-display {
+            margin: 0.4em 0 !important;
+            overflow-x: auto;
+            overflow-y: hidden;
+            padding: 0.25em 0;
+        }
+
+        /* Native Number Input Spinner Clean Up */
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type="number"] {
+            -moz-appearance: textfield;
+        }
+
+        /* Custom Scrollbars */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0b0d12;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #232736;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #33394d;
+        }
+    </style>
+</head>
+<body class="p-4 sm:p-6 lg:p-12 flex flex-col items-center justify-start min-h-screen">
+
+    <header class="w-full max-w-3xl mb-8 text-left">
+        <h1 class="text-2xl sm:text-3xl font-semibold tracking-tight text-white">Modular Exponentiation Solver</h1>
+    </header>
+
+    <main class="w-full max-w-3xl space-y-6">
+        
+        <!-- Input Panel -->
+        <section class="neu-raised rounded-2xl p-5 sm:p-7">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-6">
+                
+                <!-- Base Input -->
+                <div class="flex flex-col">
+                    <label for="inputBase" class="text-xs font-semibold text-app-muted uppercase tracking-wider mb-2">Base (b)</label>
+                    <div class="neu-inset rounded-xl flex items-center px-3.5 py-2.5 focus-within:border-indigo-500/50 transition-colors">
+                        <input type="number" id="inputBase" class="w-full bg-transparent font-mono text-base text-white placeholder-app-muted/40 focus:outline-none" placeholder="Enter Base" autocomplete="off">
+                    </div>
+                </div>
+
+                <!-- Exponent Input -->
+                <div class="flex flex-col">
+                    <label for="inputExponent" class="text-xs font-semibold text-app-muted uppercase tracking-wider mb-2">Exponent (e)</label>
+                    <div class="neu-inset rounded-xl flex items-center px-3.5 py-2.5 focus-within:border-indigo-500/50 transition-colors">
+                        <input type="number" id="inputExponent" class="w-full bg-transparent font-mono text-base text-white placeholder-app-muted/40 focus:outline-none" placeholder="Enter Exponent" autocomplete="off">
+                    </div>
+                </div>
+
+                <!-- Modulo Input -->
+                <div class="flex flex-col">
+                    <label for="inputModulo" class="text-xs font-semibold text-app-muted uppercase tracking-wider mb-2">Modulo (m)</label>
+                    <div class="neu-inset rounded-xl flex items-center px-3.5 py-2.5 focus-within:border-indigo-500/50 transition-colors">
+                        <input type="number" id="inputModulo" min="1" class="w-full bg-transparent font-mono text-base text-white placeholder-app-muted/40 focus:outline-none" placeholder="Enter Modulo" autocomplete="off">
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex items-center gap-3">
+                <button id="calcBtn" onclick="calculateModularExponentiation()" class="flex-1 neu-button-primary text-white font-medium py-3 rounded-xl text-sm flex items-center justify-center gap-2">
+                    <span>Solve Step-by-Step</span>
+                </button>
+                <button onclick="clearInputs()" class="neu-button-sec px-5 py-3 rounded-xl text-sm font-medium text-app-muted hover:text-white">
+                    Clear
+                </button>
+            </div>
+        </section>
+
+        <section id="solutionContainer" class="hidden neu-raised rounded-2xl p-5 sm:p-7 space-y-6">
+            
+            <!-- Target Summary Line & Copy Button -->
+            <div class="flex items-center justify-between pb-5 border-b border-app-border/60">
+                <div id="targetExpression" class="text-lg sm:text-xl font-medium text-white"></div>
+                <button onclick="copyToClipboard()" id="copyBtn" class="neu-button-sec px-3.5 py-2 rounded-lg text-xs font-medium text-app-muted hover:text-white flex items-center gap-1.5 shrink-0">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+                    <span id="copyBtnText">Copy LaTeX</span>
+                </button>
+            </div>
+
+            <!-- Step 1: Base Reduction -->
+            <div class="space-y-2.5">
+                <div class="flex items-center gap-2">
+                    <span class="text-xs font-semibold text-app-accent tracking-wide uppercase">Step 1</span>
+                    <h2 class="text-sm font-semibold text-white">Base Reduction</h2>
+                </div>
+                <div id="step1Content" class="neu-inset rounded-xl p-4 text-sm text-slate-300 leading-relaxed overflow-x-auto">
+                </div>
+            </div>
+
+            <!-- Step 2: Step-by-Step Pattern Discovery -->
+            <div class="space-y-2.5">
+                <div class="flex items-center gap-2">
+                    <span class="text-xs font-semibold text-app-accent tracking-wide uppercase">Step 2</span>
+                    <h2 class="text-sm font-semibold text-white">Pattern Search</h2>
+                </div>
+                <div id="step2Content" class="neu-inset rounded-xl p-4 text-sm text-slate-300 space-y-1.5 overflow-x-auto">
+                </div>
+                <div id="patternHighlight" class="neu-surface-subtle rounded-xl p-3.5 text-xs sm:text-sm font-medium">
+                </div>
+            </div>
+
+            <!-- Step 3: Simplification and Substitution -->
+            <div class="space-y-2.5">
+                <div class="flex items-center gap-2">
+                    <span class="text-xs font-semibold text-app-accent tracking-wide uppercase">Step 3</span>
+                    <h2 class="text-sm font-semibold text-white">Simplification & Substitution</h2>
+                </div>
+                <div id="step3Content" class="neu-inset rounded-xl p-4 text-sm text-slate-300 space-y-3 overflow-x-auto">
+                </div>
+            </div>
+
+            <!-- Final Answer -->
+            <div class="pt-2">
+                <div class="neu-surface-subtle rounded-xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3 border border-indigo-500/20">
+                    <span class="text-xs font-semibold uppercase tracking-wider text-app-muted">Final Answer</span>
+                    <div id="finalAnswerBox" class="text-lg sm:text-xl font-bold text-app-accent">
+                    </div>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- Notification Toast -->
+        <div id="toast" class="hidden fixed bottom-6 right-6 neu-raised px-4 py-3 rounded-xl border border-app-border text-xs font-medium text-white flex items-center gap-2.5 shadow-2xl z-50">
+            <span id="toastMsg"></span>
+        </div>
+
+    </main>
+
+    <script>
+        function renderTex(latex, display = false) {
+            try {
+                return katex.renderToString(latex, { displayMode: display, throwOnError: false });
+            } catch (e) {
+                return latex;
+            }
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            const toastMsg = document.getElementById('toastMsg');
+            toastMsg.innerText = message;
+            toast.classList.remove('hidden');
+            setTimeout(() => {
+                toast.classList.add('hidden');
+            }, 3000);
+        }
+
+        function clearInputs() {
+            document.getElementById('inputBase').value = '';
+            document.getElementById('inputExponent').value = '';
+            document.getElementById('inputModulo').value = '';
+            document.getElementById('solutionContainer').classList.add('hidden');
+        }
+
+        let currentLaTeXSummary = "";
+
+        function copyToClipboard() {
+            if (!currentLaTeXSummary) return;
+            const textArea = document.createElement("textarea");
+            textArea.value = currentLaTeXSummary;
+            document.body.appendChild(textArea);
+            textArea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textArea);
+
+            const copyBtnText = document.getElementById('copyBtnText');
+            copyBtnText.innerText = "Copied!";
+            setTimeout(() => {
+                copyBtnText.innerText = "Copy LaTeX";
+            }, 2000);
+        }
+
+        function calculateModularExponentiation() {
+            const bInput = document.getElementById('inputBase').value.trim();
+            const eInput = document.getElementById('inputExponent').value.trim();
+            const mInput = document.getElementById('inputModulo').value.trim();
+
+            if (bInput === '' || eInput === '' || mInput === '') {
+                showToast("Please provide Base, Exponent, and Modulo.");
+                return;
+            }
+
+            const base = BigInt(bInput);
+            const exponent = BigInt(eInput);
+            const modulo = BigInt(mInput);
+
+            if (modulo <= 0n) {
+                showToast("Modulo must be greater than 0.");
+                return;
+            }
+
+            if (exponent < 0n) {
+                showToast("Exponent must be non-negative.");
+                return;
+            }
+
+            const solutionContainer = document.getElementById('solutionContainer');
+            solutionContainer.classList.remove('hidden');
+
+            document.getElementById('targetExpression').innerHTML = renderTex(`${base}^{${exponent}} \\pmod{${modulo}}`, true);
+
+            // Edge Cases
+            if (modulo === 1n) {
+                document.getElementById('step1Content').innerHTML = renderTex(`\\forall n \\in \\mathbb{Z}, \\quad n \\pmod 1 = 0`, true);
+                document.getElementById('step2Content').innerHTML = `No pattern search needed.`;
+                document.getElementById('patternHighlight').innerHTML = `<span class="text-app-muted">Modulo is 1.</span>`;
+                document.getElementById('step3Content').innerHTML = renderTex(`0 \\pmod 1 = 0`, true);
+                document.getElementById('finalAnswerBox').innerHTML = renderTex(`${base}^{${exponent}} \\equiv 0 \\pmod{1}`);
+                currentLaTeXSummary = `${base}^{${exponent}} \\equiv 0 \\pmod{1}`;
+                return;
+            }
+
+            if (exponent === 0n) {
+                document.getElementById('step1Content').innerHTML = renderTex(`b^0 = 1 \\pmod{${modulo}}`, true);
+                document.getElementById('step2Content').innerHTML = `No pattern search needed.`;
+                document.getElementById('patternHighlight').innerHTML = `<span class="text-app-muted">Exponent is 0.</span>`;
+                document.getElementById('step3Content').innerHTML = renderTex(`1 \\pmod{${modulo}} = 1`, true);
+                document.getElementById('finalAnswerBox').innerHTML = renderTex(`${base}^0 \\equiv 1 \\pmod{${modulo}}`);
+                currentLaTeXSummary = `${base}^0 \\equiv 1 \\pmod{${modulo}}`;
+                return;
+            }
+
+            // Step 1: Base Reduction
+            const reducedBase = ((base % modulo) + modulo) % modulo;
+            let step1HTML = `Reduce the base modulo ${modulo}:<br>`;
+            step1HTML += renderTex(`${base} \\equiv ${reducedBase} \\pmod{${modulo}}`, true);
+            step1HTML += `Thus, we simplify:<br>`;
+            step1HTML += renderTex(`${base}^{${exponent}} \\equiv ${reducedBase}^{${exponent}} \\pmod{${modulo}}`, true);
+            document.getElementById('step1Content').innerHTML = step1HTML;
+
+            if (reducedBase === 0n) {
+                document.getElementById('step2Content').innerHTML = `0 raised to any positive exponent is 0.`;
+                document.getElementById('patternHighlight').innerHTML = `<span class="text-app-muted">Reduced base is 0.</span>`;
+                document.getElementById('step3Content').innerHTML = renderTex(`0^{${exponent}} \\equiv 0 \\pmod{${modulo}}`, true);
+                document.getElementById('finalAnswerBox').innerHTML = renderTex(`${base}^{${exponent}} \\equiv 0 \\pmod{${modulo}}`);
+                currentLaTeXSummary = `${base}^{${exponent}} \\equiv 0 \\pmod{${modulo}}`;
+                return;
+            }
+
+            if (reducedBase === 1n) {
+                document.getElementById('step2Content').innerHTML = `1 raised to any power is always 1.`;
+                document.getElementById('patternHighlight').innerHTML = `<span class="text-app-muted">Reduced base is 1.</span>`;
+                document.getElementById('step3Content').innerHTML = renderTex(`1^{${exponent}} \\equiv 1 \\pmod{${modulo}}`, true);
+                document.getElementById('finalAnswerBox').innerHTML = renderTex(`${base}^{${exponent}} \\equiv 1 \\pmod{${modulo}}`);
+                currentLaTeXSummary = `${base}^{${exponent}} \\equiv 1 \\pmod{${modulo}}`;
+                return;
+            }
+
+            // Step 2: Power pattern search
+            const a = reducedBase;
+            let step2Lines = [];
+            const history = new Map();
+
+            let onePower = null;
+            let minusOnePower = null;
+            let loopStart = null;
+            let loopEnd = null;
+
+            let prevRem = 1n;
+            const maxSearch = (modulo + 2n < exponent) ? (modulo + 2n) : exponent;
+
+            for (let k = 1n; k <= maxSearch; k++) {
+                if (k === 1n) {
+                    const currentRem = a % modulo;
+                    step2Lines.push(renderTex(`${a}^1 \\equiv ${currentRem} \\pmod{${modulo}}`, true));
+
+                    if (currentRem === 1n) {
+                        onePower = 1n;
+                        break;
+                    }
+                    if (currentRem === modulo - 1n) {
+                        minusOnePower = 1n;
+                        break;
+                    }
+                    history.set(currentRem.toString(), 1n);
+                    prevRem = currentRem;
+                } else {
+                    const product = prevRem * a;
+                    const currentRem = product % modulo;
+
+                    let lineTex = "";
+                    if (product >= modulo) {
+                        lineTex = `${a}^{${k}} \\equiv ${a}^{${k-1n}} \\cdot ${a} \\equiv ${prevRem} \\cdot ${a} = ${product} \\equiv ${currentRem} \\pmod{${modulo}}`;
+                    } else {
+                        lineTex = `${a}^{${k}} \\equiv ${a}^{${k-1n}} \\cdot ${a} \\equiv ${prevRem} \\cdot ${a} = ${currentRem} \\pmod{${modulo}}`;
+                    }
+                    step2Lines.push(renderTex(lineTex, true));
+
+                    if (currentRem === 1n) {
+                        onePower = k;
+                        break;
+                    }
+
+                    if (currentRem === modulo - 1n) {
+                        minusOnePower = k;
+                        break;
+                    }
+
+                    const key = currentRem.toString();
+                    if (history.has(key)) {
+                        loopStart = history.get(key);
+                        loopEnd = k;
+                        break;
+                    }
+
+                    history.set(key, k);
+                    prevRem = currentRem;
+                }
+            }
+
+            let patternHTML = "";
+            let step3HTML = "";
+            let finalVal = 0n;
+
+            // SPECIAL RULE FOR -1: IMMEDIATELY SHOW DOUBLING STEP
+            if (minusOnePower !== null) {
+                const k = minusOnePower;
+                const doubleK = 2n * k;
+
+                // Add exact doubling line
+                const doubleLineTex = `${a}^{${doubleK}} \\equiv ${a}^{${k}} \\cdot ${a}^{${k}} \\equiv (-1) \\cdot (-1) = 1 \\pmod{${modulo}}`;
+                step2Lines.push(renderTex(doubleLineTex, true));
+
+                patternHTML = `<div class="space-y-1">` +
+                              `<div><span class="text-app-amber font-semibold">Reduced Base Power:</span> ${renderTex(`${a}^{${k}} \\equiv -1 \\pmod{${modulo}}`)}</div>` +
+                              `<div><span class="text-app-emerald font-semibold">Doubled Exponent:</span> ${renderTex(`${a}^{${doubleK}} \\equiv 1 \\pmod{${modulo}}`)}</div>` +
+                              `</div>`;
+
+                // Set effective period to 2k
+                onePower = doubleK;
+            } else if (onePower !== null) {
+                patternHTML = `<div><span class="text-app-emerald font-semibold">Pattern Discovered:</span> ${renderTex(`${a}^{${onePower}} \\equiv 1 \\pmod{${modulo}}`)}</div>`;
+            }
+
+            document.getElementById('step2Content').innerHTML = step2Lines.join('');
+
+            // Step 3: Substitution using Period Power yielding 1
+            if (onePower !== null) {
+                const p = onePower;
+                const q = exponent / p;
+                const r = exponent % p;
+
+                const remVal = modularPow(a, r, modulo);
+
+                step3HTML = `<p class="font-medium text-app-accent">Period Reduction via ${renderTex(`${a}^{${p}} \\equiv 1 \\pmod{${modulo}}`)}</p>`;
+                step3HTML += `<p>1. Divide target exponent by period ${p}:</p>`;
+                step3HTML += renderTex(`${exponent} = ${p} \\cdot ${q} + ${r}`, true);
+                step3HTML += `<p>2. Express power using division algorithm:</p>`;
+                step3HTML += renderTex(`${a}^{${exponent}} \\equiv \\left(${a}^{${p}}\\right)^{${q}} \\cdot ${a}^{${r}} \\pmod{${modulo}}`, true);
+                step3HTML += `<p>3. Substitute ${renderTex(`${a}^{${p}} \\equiv 1`)}:</p>`;
+                step3HTML += renderTex(`\\equiv (1)^{${q}} \\cdot ${a}^{${r}} \\pmod{${modulo}}`, true);
+                step3HTML += renderTex(`\\equiv 1 \\cdot ${remVal} \\equiv ${remVal} \\pmod{${modulo}}`, true);
+
+                finalVal = remVal;
+            }
+            // Cycle / Loop
+            else if (loopStart !== null) {
+                const cycleLen = loopEnd - loopStart;
+                patternHTML = `<div><span class="text-app-amber font-semibold">Cycle Detected:</span> ${renderTex(`${a}^{${loopEnd}} \\equiv ${a}^{${loopStart}} \\pmod{${modulo}}`)} (Cycle Length = ${cycleLen})</div>`;
+
+                let reducedExp = exponent;
+                if (exponent >= loopStart) {
+                    reducedExp = loopStart + ((exponent - loopStart) % cycleLen);
+                }
+
+                finalVal = modularPow(a, reducedExp, modulo);
+
+                step3HTML = `<p class="font-medium text-app-accent">Exponent Cycle Offset</p>`;
+                step3HTML += `<p>1. Cycle length ${renderTex(`L = ${loopEnd} - ${loopStart} = ${cycleLen}`)}.</p>`;
+                step3HTML += `<p>2. Reduce exponent with cycle offset:</p>`;
+                step3HTML += renderTex(`${exponent} \\equiv ${reducedExp} \\pmod{${cycleLen}}`, true);
+                step3HTML += `<p>3. Calculate remaining power:</p>`;
+                step3HTML += renderTex(`${a}^{${reducedExp}} \\equiv ${finalVal} \\pmod{${modulo}}`, true);
+            }
+            // Direct Computation Fallback
+            else {
+                patternHTML = `<span class="text-app-muted">Direct exponent evaluation.</span>`;
+                finalVal = modularPow(a, exponent, modulo);
+                step3HTML = renderTex(`${a}^{${exponent}} \\equiv ${finalVal} \\pmod{${modulo}}`, true);
+            }
+
+            document.getElementById('patternHighlight').innerHTML = patternHTML;
+            document.getElementById('step3Content').innerHTML = step3HTML;
+
+            // Final Result Line
+            document.getElementById('finalAnswerBox').innerHTML = renderTex(`${base}^{${exponent}} \\equiv ${finalVal} \\pmod{${modulo}}`);
+
+            // LaTeX Copy Summary
+            currentLaTeXSummary = `\\begin{aligned}\n` +
+                                  `\\text{Target: } & ${base}^{${exponent}} \\pmod{${modulo}} \\\\\n` +
+                                  `\\text{Base Reduction: } & ${base} \\equiv ${reducedBase} \\pmod{${modulo}} \\\\\n` +
+                                  `\\text{Result: } & ${base}^{${exponent}} \\equiv ${finalVal} \\pmod{${modulo}}\n` +
+                                  `\\end{aligned}`;
+        }
+
+        function modularPow(base, exp, mod) {
+            let res = 1n;
+            let b = base % mod;
+            let e = exp;
+            while (e > 0n) {
+                if (e % 2n === 1n) res = (res * b) % mod;
+                b = (b * b) % mod;
+                e = e / 2n;
+            }
+            return res;
+        }
+
+        // Keypress handler for Enter key
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Enter') {
+                calculateModularExponentiation();
+            }
+        });
+    </script>
+</body>
+</html>
